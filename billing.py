@@ -120,12 +120,47 @@ def lambda_handler(event: dict, context: Any) -> None:
     for x in billings:
         lines.append('- %s' % format_price(*x))
 
+    summary = {
+	    "fallback": "Required plain-text summary of the attachment.",
+	    "color": "#36a64f",
+	    "title": "Summary",
+	    "fields": [
+		{
+		    "title": ":moneybag: ALL",
+		    "value": "$%.2f (+ $%.2f)" % (total.monthly, total.daily),
+		    "short": False
+		    },
+		],
+	    "ts": today.timestamp()
+	    }
+
+    detail = {
+	    "fallback": "Required plain-text summary of the attachment.",
+	    "color": "warning",
+	    "title": "Detail",
+	    "fields": [
+		{
+		    "title": ":aws: EC2",
+		    "value": "$0.02 +($0.00)",
+		    "short": True
+		    },
+		{
+		    "title": ":aws: EC2",
+		    "value": "$0.02 +($0.00)",
+		    "short": True
+		    },
+		],
+	    "ts": today.timestamp()
+	    }
+
     message = {
-        'username': 'AWS Daily Billing',
-        'channel': SLACK_CHANNEL,
-        'icon_emoji': ':money_with_wings:',
-        'text': '```%s```' % ('\n'.join(lines))
-    }
+	    'username': 'AWS Billing at %s' % today.strftime('%Y-%m-%d'),
+	    'channel': SLACK_CHANNEL,
+	    'icon_emoji': ':aws1:',
+	    'link_names': 1,
+	    "attachments": [ summary, detail]
+	    }
+
     post_slack(message)
 
 if __name__ == '__main__':
