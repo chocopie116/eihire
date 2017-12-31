@@ -98,34 +98,48 @@ def post_slack(message: Dict[str, str]) -> None:
     print(response_body)
 
 
-def format_price(caption: str, billing: Billing) -> str:
-    return '%s: $%.2f ($%.2f)' % (caption, billing.daily, billing.monthly)
-
-
 def lambda_handler(event: dict, context: Any) -> None:
     today = datetime.datetime.utcnow()
 
     client = get_client()
 
     total = calc_total_billing(client, today)
-
     services = list_services(list_metrics(client))
     billings = [(x, calc_service_billing(client, today, x))
                 for x in services]
 
-    lines = [
-        '%s daily (monthly)' % today.strftime('%Y-%m-%d'),
-        format_price('Total', total),
-    ]
+    summary = {
+	    "fallback": "-",
+	    "color": "#36a64f",
+	    "title": "Total \n:moneybag:$%.2f (+ $%.2f)" % (total.monthly, total.daily),
+	    "ts": today.timestamp()
+	    }
+
+    fields = []
     for x in billings:
-        lines.append('- %s' % format_price(*x))
+        fields.append({
+	    "title": ":aws: %s" % x[0],
+	    "value": "$%.2f  (+$%.2f)" % (x[1].monthly, x[1].daily),
+	    "short": True
+	    })
+
+    detail = {
+	    "fallback": "-",
+	    "color": "#cecdc8",
+	    "title": "Detail",
+	    "fields": fields,
+	    "ts": today.timestamp()
+	    }
+
 
     message = {
-        'username': 'AWS Daily Billing',
-        'channel': SLACK_CHANNEL,
-        'icon_emoji': ':money_with_wings:',
-        'text': '```%s```' % ('\n'.join(lines))
-    }
+	    'username': 'AWS Billing at %s' % today.strftime('%Y-%m-%d'),
+	    'channel': SLACK_CHANNEL,
+	    'icon_emoji': ':aws1:',
+	    'link_names': 1,
+	    "attachments": [summary, detail]
+	    }
+
     post_slack(message)
 
 if __name__ == '__main__':
