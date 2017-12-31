@@ -98,67 +98,46 @@ def post_slack(message: Dict[str, str]) -> None:
     print(response_body)
 
 
-def format_price(caption: str, billing: Billing) -> str:
-    return '%s: $%.2f ($%.2f)' % (caption, billing.daily, billing.monthly)
-
-
 def lambda_handler(event: dict, context: Any) -> None:
     today = datetime.datetime.utcnow()
 
     client = get_client()
 
     total = calc_total_billing(client, today)
-
     services = list_services(list_metrics(client))
     billings = [(x, calc_service_billing(client, today, x))
                 for x in services]
 
-    lines = [
-        '%s daily (monthly)' % today.strftime('%Y-%m-%d'),
-        format_price('Total', total),
-    ]
-    for x in billings:
-        lines.append('- %s' % format_price(*x))
-
     summary = {
-	    "fallback": "Required plain-text summary of the attachment.",
+	    "fallback": "-",
 	    "color": "#36a64f",
-	    "title": "Summary",
-	    "fields": [
-		{
-		    "title": ":moneybag: ALL",
-		    "value": "$%.2f (+ $%.2f)" % (total.monthly, total.daily),
-		    "short": False
-		    },
-		],
+	    "title": "Total \n:moneybag:$%.2f (+ $%.2f)" % (total.monthly, total.daily),
 	    "ts": today.timestamp()
 	    }
+
+    fields = []
+    for x in billings:
+        fields.append({
+	    "title": ":aws: %s" % x[0],
+	    "value": "$%.2f  (+$%.2f)" % (x[1].monthly, x[1].daily),
+	    "short": True
+	    })
 
     detail = {
-	    "fallback": "Required plain-text summary of the attachment.",
+	    "fallback": "-",
 	    "color": "warning",
 	    "title": "Detail",
-	    "fields": [
-		{
-		    "title": ":aws: EC2",
-		    "value": "$0.02 +($0.00)",
-		    "short": True
-		    },
-		{
-		    "title": ":aws: EC2",
-		    "value": "$0.02 +($0.00)",
-		    "short": True
-		    },
-		],
+	    "fields": fields,
 	    "ts": today.timestamp()
 	    }
+
 
     message = {
 	    'username': 'AWS Billing at %s' % today.strftime('%Y-%m-%d'),
 	    'channel': SLACK_CHANNEL,
 	    'icon_emoji': ':aws1:',
 	    'link_names': 1,
-	    "attachments": [ summary, detail]
+	    "attachments": [summary, detail]
 	    }
 
     post_slack(message)
