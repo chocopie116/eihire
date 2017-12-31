@@ -125,7 +125,7 @@ def lambda_handler(event: dict, context: Any) -> None:
 
     detail = {
 	    "fallback": "-",
-	    "color": "warning",
+	    "color": "#cecdc8",
 	    "title": "Detail",
 	    "fields": fields,
 	    "ts": today.timestamp()
