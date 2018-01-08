@@ -73,15 +73,26 @@ def _get_billings(client: Any, dt: datetime.datetime, service_name: Optional[str
         Period=86400,
         Statistics=['Maximum']
     )['Datapoints']
-    return [x for x in items if x['Timestamp'].month == dt.month]
+
+    r = []
+    for x in items:
+        if x['Timestamp'].month == dt.month:
+            r.append(x)
+
+    return r
 
 
 def _calc_billings(items: list) -> Billing:
-    print(items)
-    if len(items) == 1:
+    c = len(items)
+    if c == 0:
+        # 該当月の利用が全くない場合
+        return Billing(0, 0)
+
+    if c == 1:
         # the first day of month
         price = items[0]['Maximum']
         return Billing(price, price)
+
     return Billing(
         daily=abs(items[0]['Maximum'] - items[1]['Maximum']),
         monthly=max([x['Maximum'] for x in items])
