@@ -16,6 +16,7 @@ class Billing(NamedTuple):
     daily: float
     monthly: float
 
+
 def get_session() -> Any:
     return boto3.session.Session()
 
@@ -58,7 +59,7 @@ def calc_service_billing(client: Any, dt: datetime.datetime, service: str) -> Bi
     return _calc_billings(_get_billings(client, dt, service))
 
 
-def _get_billings(client: Any, dt: datetime.datetime, service_name: Optional[str]=None) -> List[Any]:
+def _get_billings(client: Any, dt: datetime.datetime, service_name: Optional[str] = None) -> List[Any]:
     dimensions = [{'Name': 'Currency', 'Value': 'USD'}]
     if service_name is not None:
         dimensions.append({'Name': 'ServiceName', 'Value': service_name})
@@ -76,6 +77,7 @@ def _get_billings(client: Any, dt: datetime.datetime, service_name: Optional[str
 
 
 def _calc_billings(items: list) -> Billing:
+    print(items)
     if len(items) == 1:
         # the first day of month
         price = items[0]['Maximum']
@@ -104,43 +106,44 @@ def lambda_handler(event: dict, context: Any) -> None:
     client = get_client()
 
     total = calc_total_billing(client, today)
+
     services = list_services(list_metrics(client))
     billings = [(x, calc_service_billing(client, today, x))
                 for x in services]
 
     summary = {
-	    "fallback": "-",
-	    "color": "#36a64f",
-	    "title": "Total \n:moneybag:$%.2f (+ $%.2f)" % (total.monthly, total.daily),
-	    "ts": today.timestamp()
-	    }
+        "fallback": "-",
+        "color": "#36a64f",
+        "title": "Total \n:moneybag:$%.2f (+ $%.2f)" % (total.monthly, total.daily),
+        "ts": today.timestamp()
+    }
 
     fields = []
     for x in billings:
         fields.append({
-	    "title": ":aws: %s" % x[0],
-	    "value": "$%.2f  (+$%.2f)" % (x[1].monthly, x[1].daily),
-	    "short": True
-	    })
+            "title": ":aws: %s" % x[0],
+            "value": "$%.2f  (+$%.2f)" % (x[1].monthly, x[1].daily),
+            "short": True
+        })
 
     detail = {
-	    "fallback": "-",
-	    "color": "#cecdc8",
-	    "title": "Detail",
-	    "fields": fields,
-	    "ts": today.timestamp()
-	    }
-
+        "fallback": "-",
+        "color": "#cecdc8",
+        "title": "Detail",
+        "fields": fields,
+        "ts": today.timestamp()
+    }
 
     message = {
-	    'username': 'AWS Billing at %s' % today.strftime('%Y-%m-%d'),
-	    'channel': SLACK_CHANNEL,
-	    'icon_emoji': ':aws1:',
-	    'link_names': 1,
-	    "attachments": [summary, detail]
-	    }
+        'username': 'AWS Billing at %s' % today.strftime('%Y-%m-%d'),
+        'channel': SLACK_CHANNEL,
+        'icon_emoji': ':aws1:',
+        'link_names': 1,
+        "attachments": [summary, detail]
+    }
 
     post_slack(message)
+
 
 if __name__ == '__main__':
     lambda_handler({}, {})
