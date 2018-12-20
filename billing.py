@@ -7,7 +7,7 @@ import urllib.request
 import boto3
 
 SLACK_CHANNEL = '#billing'
-HOOK_URL = 'https://hooks.slack.com/services/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'
+HOOK_URL = 'https://hooks.slack.com/services/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'
 
 Metrics = Optional[List[Any]]
 
