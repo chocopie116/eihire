@@ -26,7 +26,7 @@ def lambda_handler(event, context):
     s3Info = json.loads(event['Records'][0]['Sns']['Message'])
     bucket = s3Info['s3Bucket']
     key = s3Info['s3ObjectKey'][0]
-
+    
     try:
         obj = s3.download_file(bucket, key, '/tmp/json.gz')
         f = gzip.open('/tmp/json.gz', 'rb')
@@ -37,6 +37,10 @@ def lambda_handler(event, context):
         
         messages = []
         for r in records:
+            # skip cloudwatch logs notify
+            if ((r["eventSource"] == 'logs.amazonaws.com') & (r["eventName"] == 'CreateLogStream')):
+                continue
+            
             messages.append({
                 "title": ":aws: CloudTrail",
                 "value": "%s  (%s)" % (r["eventSource"], r["eventName"]),
